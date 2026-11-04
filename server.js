@@ -79,7 +79,18 @@ function requireAdmin(req, res, next) {
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Tìm thư mục giao diện: ưu tiên public/, nếu repo bị làm phẳng thì dùng thư mục gốc
+const PUBLIC_DIR = fs.existsSync(path.join(__dirname, 'public', 'index.html')) ? path.join(__dirname, 'public') : __dirname;
+const PAGES = ['index.html', 'tra-cuu.html', 'admin.html', 'style.css'];
+const missing = PAGES.filter(f => !fs.existsSync(path.join(PUBLIC_DIR, f)));
+console.log('Thư mục giao diện:', PUBLIC_DIR, missing.length ? '— THIẾU: ' + missing.join(', ') : '— đủ file');
+const page = name => (req, res) => {
+  const f = path.join(PUBLIC_DIR, name);
+  if (fs.existsSync(f)) return res.sendFile(f);
+  res.status(500).type('html').send(`<h2>Thiếu file giao diện: ${name}</h2><p>Hãy kiểm tra repo GitHub có thư mục <b>public/</b> chứa index.html, tra-cuu.html, admin.html, style.css.</p>`);
+};
+app.get('/', page('index.html'));
+app.get('/style.css', page('style.css'));
 
 const clean = (s, max = 500) => String(s ?? '').trim().slice(0, max);
 const norm = s => clean(s).toLowerCase();
@@ -227,8 +238,8 @@ app.get('/api/admin/export.csv', requireAdmin, (req, res) => {
   res.send('﻿' + cols.map(esc).join(',') + '\n' + rows.join('\n'));
 });
 
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/tra-cuu', (req, res) => res.sendFile(path.join(__dirname, 'public', 'tra-cuu.html')));
+app.get('/admin', page('admin.html'));
+app.get('/tra-cuu', page('tra-cuu.html'));
 app.get('/healthz', (req, res) => res.send('ok'));
 
 app.listen(PORT, () => {
