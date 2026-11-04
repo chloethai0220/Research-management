@@ -1,0 +1,16 @@
+{
+  "name": "nckh-minh-chung",
+  "version": "1.0.0",
+  "description": "Cổng nộp và quản lý minh chứng nghiên cứu khoa học của học viên",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

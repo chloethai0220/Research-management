@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quản lý minh chứng NCKH</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+main{max-width:1320px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.12s}
+.stat:hover,.stat.on{border-color:var(--brand-2);box-shadow:0 0 0 2px #cfe0f0}
+.stat .n{font-size:24px;font-weight:700;line-height:1.1}
+.stat .l{font-size:12.5px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input,.toolbar select{width:auto;flex:1;min-width:150px}
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.li{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.li:hover{background:#faf8f3}
+.li.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--brand-2)}
+.li .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .m{font-size:12.5px;color:var(--muted);grid-column:1/-1}
+.detail{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:14px;margin-bottom:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;word-break:break-word}
+.files a{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;text-decoration:none;font-size:13.5px;color:var(--ink)}
+.files a:hover{background:var(--soft)}
+.stbtns{display:flex;flex-wrap:wrap;gap:6px}
+.stbtns button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.stbtns button.on{border-color:transparent}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.quick button{font:inherit;font-size:12px;border:1px dashed #c9c3b5;background:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--muted)}
+.hist{font-size:12.5px;color:var(--muted);border-left:2px solid var(--line);padding-left:10px;margin-top:6px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-weight:600;font-size:14px;background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--brand);border-color:var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f8f6f1;font-size:12.5px;color:var(--muted);font-weight:600}
+td.n{text-align:center}
+.catrow{display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px}
+.saved{font-size:12.5px;color:var(--ok);margin-left:8px}
+#login{max-width:380px;margin:60px auto}
+@media (max-width:960px){.layout{grid-template-columns:1fr}.detail{position:static;max-height:none}.stats{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.kv{grid-template-columns:1fr}.catrow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo">NC</div>
+  <div><h1 id="siteTitle">Minh chứng Nghiên cứu khoa học</h1><small>Trang quản lý của giảng viên</small></div>
+  <nav><a href="/" target="_blank">Trang học viên ↗</a><a href="#" id="logout" hidden>Đăng xuất</a></nav>
+</div></header>
+
+<main>
+  <div id="login" class="card" hidden>
+    <h2>Đăng nhập</h2>
+    <p class="lead">Nhập mật khẩu quản trị.</p>
+    <div id="lmsg"></div>
+    <form id="lf"><input type="password" name="password" placeholder="Mật khẩu" required autofocus>
+      <button class="btn" style="margin-top:12px;width:100%;justify-content:center">Đăng nhập</button></form>
+  </div>
+
+  <div id="app" hidden>
+    <div class="tabs">
+      <button data-tab="sub" class="on">Minh chứng</button>
+      <button data-tab="stu">Theo học viên</button>
+      <button data-tab="set">Cài đặt</button>
+    </div>
+
+    <section id="tab-sub">
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <input id="q" placeholder="Tìm theo tên, MSHV, tên minh chứng, mã nộp…">
+        <select id="fCat"><option value="">Tất cả loại minh chứng</option></select>
+        <select id="fCohort"><option value="">Tất cả lớp/khóa</option></select>
+        <select id="sort"><option value="new">Mới nhất</option><option value="old">Cũ nhất</option><option value="name">Theo tên HV</option></select>
+        <a class="btn ghost" href="/api/admin/export.csv">Xuất CSV</a>
+      </div>
+      <div class="layout">
+        <div class="list" id="list"></div>
+        <div class="card detail" id="detail"><p class="muted" style="margin:0">Chọn một minh chứng để xem chi tiết và phản hồi.</p></div>
+      </div>
+    </section>
+
+    <section id="tab-stu" hidden>
+      <div class="card" style="padding:0;overflow:auto"><table id="stuTable"></table></div>
+    </section>
+
+    <section id="tab-set" hidden>
+      <div class="card">
+        <h3>Thông tin cổng nộp</h3>
+        <div class="grid">
+          <div class="full"><label>Tiêu đề</label><input id="sTitle"></div>
+          <div class="full"><label>Hướng dẫn cho học viên</label><textarea id="sIntro" placeholder="Yêu cầu, số lượng minh chứng tối thiểu, quy cách đặt tên file…"></textarea></div>
+          <div><label>Hạn nộp</label><input type="datetime-local" id="sDeadline"></div>
+          <div><label>Trạng thái cổng</label><select id="sOpen"><option value="1">Đang mở – nhận minh chứng</option><option value="0">Đóng – không nhận</option></select></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Danh mục minh chứng yêu cầu</h3>
+        <p class="small muted" style="margin-top:-6px">Tên loại và hướng dẫn hồ sơ cần nộp. Học viên chọn từ danh sách này.</p>
+        <div id="catEdit"></div>
+        <button class="btn ghost sm" id="addCat" type="button">+ Thêm loại</button>
+      </div>
+      <div style="margin-top:16px"><button class="btn" id="saveSet">Lưu cài đặt</button><span class="saved" id="setSaved"></span></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ST = { 'moi':'Mới nộp', 'dang-xem':'Đang xem', 'dat':'Đạt', 'can-bo-sung':'Cần bổ sung', 'khong-dat':'Không đạt' };
+const QUICK = ['Minh chứng đầy đủ, hợp lệ.', 'Thiếu trang bìa/mục lục thể hiện ISSN/ISBN.', 'Tên học viên không xuất hiện trong danh sách tác giả.', 'File không mở được, vui lòng nộp lại bản PDF.', 'Vui lòng bổ sung quyết định/biên bản nghiệm thu.', 'Minh chứng không thuộc phạm vi yêu cầu.'];
+let D = null, cur = null, fStatus = '';
+
+async function api(url, opt = {}) {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opt });
+  if (r.status === 401) { showLogin(); throw new Error('401'); }
+  const d = await r.json(); if (!r.ok) throw new Error(d.error); return d;
+}
+function showLogin() { $('#login').hidden = false; $('#app').hidden = true; $('#logout').hidden = true; }
+async function load() {
+  D = await api('/api/admin/data');
+  $('#login').hidden = true; $('#app').hidden = false; $('#logout').hidden = false;
+  $('#siteTitle').textContent = D.settings.title;
+  $('#fCat').innerHTML = '<option value="">Tất cả loại minh chứng</option>' + D.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  const cohorts = [...new Set(D.submissions.map(s => s.cohort).filter(Boolean))].sort();
+  $('#fCohort').innerHTML = '<option value="">Tất cả lớp/khóa</option>' + cohorts.map(c => `<option>${esc(c)}</option>`).join('');
+  renderAll(); fillSettings();
+}
+$('#lf').onsubmit = async e => {
+  e.preventDefault();
+  const r = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: e.target.password.value }) });
+  if (!r.ok) { $('#lmsg').innerHTML = '<div class="alert err">Sai mật khẩu</div>'; return; }
+  load();
+};
+$('#logout').onclick = async e => { e.preventDefault(); await fetch('/api/admin/logout', { method:'POST' }); showLogin(); };
+
+$$('.tabs button').forEach(b => b.onclick = () => {
+  $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['sub','stu','set'].forEach(t => $('#tab-' + t).hidden = t !== b.dataset.tab);
+});
+
+const catName = id => (D.categories.find(c => c.id === id) || {}).name || id;
+const fmt = d => new Date(d).toLocaleString('vi-VN', { dateStyle:'short', timeStyle:'short' });
+
+function filtered() {
+  const q = $('#q').value.trim().toLowerCase(), cat = $('#fCat').value, co = $('#fCohort').value;
+  let L = D.submissions.filter(s => (!fStatus || s.status === fStatus) && (!cat || s.categoryId === cat) && (!co || s.cohort === co) &&
+    (!q || [s.fullName, s.studentId, s.title, s.code, s.email, s.tags.join(' ')].join(' ').toLowerCase().includes(q)));
+  const so = $('#sort').value;
+  if (so === 'old') L = [...L].reverse();
+  if (so === 'name') L = [...L].sort((a, b) => a.fullName.split(' ').pop().localeCompare(b.fullName.split(' ').pop(), 'vi'));
+  return L;
+}
+function renderAll() { renderStats(); renderList(); renderStudents(); if (cur) renderDetail(); }
+function renderStats() {
+  const c = s => D.submissions.filter(x => !s || x.status === s).length;
+  $('#stats').innerHTML = [['', 'Tổng số'], ...Object.entries(ST).map(([k, v]) => [k, v])].map(([k, l]) =>
+    `<div class="stat ${fStatus === k ? 'on' : ''}" data-s="${k}"><div class="n ${k ? 'st-' + k : ''}" style="background:none">${c(k)}</div><div class="l">${l}</div></div>`).join('');
+  $$('.stat').forEach(el => el.onclick = () => { fStatus = el.dataset.s; renderStats(); renderList(); });
+}
+function renderList() {
+  const L = filtered();
+  $('#list').innerHTML = L.length ? L.map(s => `<div class="li ${cur === s.id ? 'on' : ''}" data-id="${s.id}">
+      <div class="t">${esc(s.title)}</div><span class="badge st-${s.status}">${ST[s.status]}</span>
+      <div class="m">${esc(s.fullName)} · ${esc(s.studentId)}${s.cohort ? ' · ' + esc(s.cohort) : ''} · ${esc(catName(s.categoryId))} · ${fmt(s.createdAt)}
+      ${s.files.length ? ' · 📎' + s.files.length : ''}${s.tags.map(t => ` <span class="tag">${esc(t)}</span>`).join('')}</div></div>`).join('')
+    : '<p class="muted" style="padding:20px;margin:0">Không có minh chứng nào phù hợp.</p>';
+  $$('.li').forEach(el => el.onclick = () => { cur = el.dataset.id; renderList(); renderDetail(); if (innerWidth < 960) $('#detail').scrollIntoView({ behavior:'smooth' }); });
+}
+['#q','#fCat','#fCohort','#sort'].forEach(s => $(s).addEventListener('input', renderList));
+
+function renderDetail() {
+  const s = D.submissions.find(x => x.id === cur); if (!s) { $('#detail').innerHTML = ''; return; }
+  const same = D.submissions.filter(x => x.studentId === s.studentId && x.id !== s.id);
+  $('#detail').innerHTML = `
+    <div class="small muted">Mã nộp ${esc(s.code)} · ${fmt(s.createdAt)}</div>
+    <h2 style="font-size:18px;margin:4px 0 14px">${esc(s.title)}</h2>
+    <dl class="kv">
+      <dt>Học viên</dt><dd><b>${esc(s.fullName)}</b> · ${esc(s.studentId)}</dd>
+      <dt>Lớp/Khóa</dt><dd>${esc(s.cohort) || '—'}</dd>
+      <dt>Liên hệ</dt><dd><a href="mailto:${esc(s.email)}">${esc(s.email)}</a>${s.phone ? ' · ' + esc(s.phone) : ''}</dd>
+      <dt>Tác giả</dt><dd>${esc(s.authors) || '—'}</dd>
+      <dt>Nơi công bố</dt><dd>${esc(s.venue) || '—'}${s.year ? ' (' + esc(s.year) + ')' : ''}</dd>
+      ${s.link ? `<dt>Link</dt><dd><a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.link)}</a></dd>` : ''}
+      ${s.note ? `<dt>Ghi chú HV</dt><dd style="white-space:pre-line">${esc(s.note)}</dd>` : ''}
+    </dl>
+    ${s.files.length ? `<div class="files">${s.files.map(f => `<a href="/api/admin/files/${encodeURIComponent(f.stored)}?view=1" target="_blank"><span>📄 ${esc(f.name)}</span><span class="muted small">${(f.size/1048576).toFixed(2)} MB</span></a>`).join('')}</div>` : ''}
+
+    <h3 style="margin-top:22px">Phân loại</h3>
+    <label>Loại minh chứng</label>
+    <select id="dCat">${D.categories.map(c => `<option value="${esc(c.id)}" ${c.id === s.categoryId ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+    <label style="margin-top:10px">Nhãn (phân cách bằng dấu phẩy)</label>
+    <input id="dTags" value="${esc(s.tags.join(', '))}" placeholder="VD: Scopus, ACI, tác giả chính">
+    <label style="margin-top:10px">Điểm / quy đổi</label>
+    <input id="dScore" value="${esc(s.score)}" placeholder="VD: 1.0" style="max-width:160px">
+
+    <h3 style="margin-top:22px">Đánh giá & phản hồi</h3>
+    <div class="stbtns" id="dSt">${Object.entries(ST).map(([k, v]) => `<button type="button" data-s="${k}" class="${k === s.status ? 'on st-' + k : ''}">${v}</button>`).join('')}</div>
+    <label style="margin-top:12px">Phản hồi gửi học viên</label>
+    <div class="quick">${QUICK.map(t => `<button type="button">${esc(t)}</button>`).join('')}</div>
+    <textarea id="dFb" placeholder="Học viên sẽ thấy nội dung này khi tra cứu">${esc(s.feedback)}</textarea>
+    <label style="margin-top:10px">Ghi chú riêng (học viên không thấy)</label>
+    <textarea id="dPn" style="min-height:60px">${esc(s.privateNote)}</textarea>
+    <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="dSave">Lưu</button>
+      <a class="btn ghost" href="mailto:${esc(s.email)}?subject=${encodeURIComponent('Phản hồi minh chứng NCKH - ' + s.code)}">Gửi email</a>
+      <button class="btn danger" id="dDel" style="margin-left:auto">Xóa</button>
+      <span class="saved" id="dSaved"></span>
+    </div>
+    ${same.length ? `<h3 style="margin-top:22px">Minh chứng khác của học viên (${same.length})</h3>${same.map(x => `<div class="li" data-id="${x.id}" style="border:1px solid var(--line);border-radius:8px;margin-top:6px"><div class="t">${esc(x.title)}</div><span class="badge st-${x.status}">${ST[x.status]}</span></div>`).join('')}` : ''}
+    <h3 style="margin-top:22px">Lịch sử</h3>
+    ${s.history.slice().reverse().map(h => `<div class="hist">${fmt(h.at)} · ${h.by === 'giang-vien' ? 'GV' : 'HV'} · ${esc(h.action)}</div>`).join('')}
+  `;
+  let status = s.status;
+  $$('#dSt button').forEach(b => b.onclick = () => { status = b.dataset.s; $$('#dSt button').forEach(x => x.className = x === b ? 'on st-' + status : ''); });
+  $$('.quick button').forEach(b => b.onclick = () => { const t = $('#dFb'); t.value = (t.value ? t.value.trimEnd() + '\n' : '') + b.textContent; t.focus(); });
+  $$('#detail .li').forEach(el => el.onclick = () => { cur = el.dataset.id; renderList(); renderDetail(); });
+  $('#dSave').onclick = async () => {
+    const d = await api('/api/admin/submissions/' + s.id, { method:'PATCH', body: JSON.stringify({
+      status, categoryId: $('#dCat').value, tags: $('#dTags').value.split(','), score: $('#dScore').value, feedback: $('#dFb').value, privateNote: $('#dPn').value }) });
+    Object.assign(s, d.submission); renderStats(); renderList(); renderStudents(); renderDetail();
+    $('#dSaved').textContent = '✓ Đã lưu'; setTimeout(() => { const el = $('#dSaved'); if (el) el.textContent = ''; }, 2000);
+  };
+  $('#dDel').onclick = async () => {
+    if (!confirm('Xóa vĩnh viễn minh chứng này và các file đính kèm?')) return;
+    await api('/api/admin/submissions/' + s.id, { method:'DELETE' });
+    D.submissions = D.submissions.filter(x => x.id !== s.id); cur = null;
+    $('#detail').innerHTML = '<p class="muted" style="margin:0">Đã xóa.</p>'; renderStats(); renderList(); renderStudents();
+  };
+}
+
+function renderStudents() {
+  const by = {};
+  D.submissions.forEach(s => { const k = s.studentId; (by[k] ||= { name: s.fullName, cohort: s.cohort, email: s.email, list: [] }).list.push(s); });
+  const rows = Object.entries(by).sort((a, b) => a[1].name.split(' ').pop().localeCompare(b[1].name.split(' ').pop(), 'vi'));
+  const cnt = (l, st) => l.filter(x => x.status === st).length || '';
+  $('#stuTable').innerHTML = `<tr><th>Học viên</th><th>MSHV</th><th>Lớp/Khóa</th><th>Tổng</th>${Object.values(ST).map(v => `<th>${v}</th>`).join('')}<th>Tổng điểm</th></tr>` +
+    (rows.length ? rows.map(([id, v]) => `<tr><td><b>${esc(v.name)}</b><div class="small muted">${esc(v.email)}</div></td><td>${esc(id)}</td><td>${esc(v.cohort)}</td><td class="n"><b>${v.list.length}</b></td>
+      ${Object.keys(ST).map(k => `<td class="n">${cnt(v.list, k) ? `<span class="badge st-${k}">${cnt(v.list, k)}</span>` : ''}</td>`).join('')}
+      <td class="n">${(v.list.filter(x => x.status === 'dat').reduce((a, x) => a + (parseFloat(String(x.score).replace(',', '.')) || 0), 0) || '') }</td></tr>`).join('')
+      : `<tr><td colspan="10" class="muted">Chưa có dữ liệu.</td></tr>`);
+}
+
+function fillSettings() {
+  $('#sTitle').value = D.settings.title; $('#sIntro').value = D.settings.intro || '';
+  $('#sDeadline').value = D.settings.deadline || ''; $('#sOpen').value = D.settings.open ? '1' : '0';
+  renderCatEdit(D.categories);
+}
+function renderCatEdit(cats) {
+  $('#catEdit').innerHTML = cats.map(c => `<div class="catrow" data-id="${esc(c.id)}"><input class="cn" value="${esc(c.name)}" placeholder="Tên loại minh chứng"><input class="ch" value="${esc(c.hint)}" placeholder="Hồ sơ cần nộp"><button class="btn danger sm" type="button">Xóa</button></div>`).join('');
+  $$('.catrow button').forEach(b => b.onclick = () => {
+    const id = b.parentElement.dataset.id;
+    if (D.submissions.some(s => s.categoryId === id) && !confirm('Đã có minh chứng thuộc loại này. Vẫn xóa khỏi danh mục?')) return;
+    b.parentElement.remove();
+  });
+}
+$('#addCat').onclick = () => { const cats = readCats(); cats.push({ id: '', name: '', hint: '' }); renderCatEdit(cats); };
+const readCats = () => $$('.catrow').map(r => ({ id: r.dataset.id, name: r.querySelector('.cn').value, hint: r.querySelector('.ch').value }));
+$('#saveSet').onclick = async () => {
+  const d = await api('/api/admin/settings', { method:'PUT', body: JSON.stringify({ title: $('#sTitle').value, intro: $('#sIntro').value, deadline: $('#sDeadline').value, open: $('#sOpen').value === '1', categories: readCats() }) });
+  D.settings = d.settings; D.categories = d.categories; $('#siteTitle').textContent = d.settings.title;
+  fillSettings(); renderAll();
+  $('#fCat').innerHTML = '<option value="">Tất cả loại minh chứng</option>' + D.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  $('#setSaved').textContent = '✓ Đã lưu'; setTimeout(() => $('#setSaved').textContent = '', 2000);
+};
+
+load().catch(() => {});
+</script>
+</body>
+</html>

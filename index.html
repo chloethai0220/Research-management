@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nộp minh chứng NCKH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo">NC</div>
+  <div><h1 id="siteTitle">Minh chứng Nghiên cứu khoa học</h1><small>Cổng nộp minh chứng dành cho học viên</small></div>
+  <nav><a href="/" class="on">Nộp minh chứng</a><a href="/tra-cuu">Tra cứu phản hồi</a></nav>
+</div></header>
+
+<main class="narrow">
+  <div class="card" id="introCard">
+    <h2>Nộp minh chứng</h2>
+    <p class="lead" id="intro">Điền thông tin và đính kèm minh chứng. Sau khi nộp, bạn nhận được một mã nộp để tra cứu phản hồi của giảng viên.</p>
+    <div id="deadline"></div>
+    <h3 style="margin-top:14px">Các loại minh chứng được chấp nhận</h3>
+    <div class="cats" id="catList"></div>
+  </div>
+
+  <div class="card" id="formCard">
+    <div id="msg"></div>
+    <form id="f" novalidate>
+      <h3>Thông tin học viên</h3>
+      <div class="grid">
+        <div><label>Họ và tên <span class="req">*</span></label><input name="fullName" required autocomplete="name"></div>
+        <div><label>Mã học viên <span class="req">*</span></label><input name="studentId" required></div>
+        <div><label>Email <span class="req">*</span></label><input name="email" type="email" required autocomplete="email"><div class="hint">Dùng email này khi tra cứu phản hồi.</div></div>
+        <div><label>Lớp / Khóa</label><input name="cohort" placeholder="VD: Cao học Logistics K32"></div>
+        <div><label>Số điện thoại</label><input name="phone" autocomplete="tel"></div>
+      </div>
+
+      <h3 style="margin-top:24px">Thông tin minh chứng</h3>
+      <div class="grid">
+        <div class="full"><label>Loại minh chứng <span class="req">*</span></label>
+          <select name="categoryId" id="cat" required><option value="">— Chọn loại —</option></select>
+          <div class="hint" id="catHint"></div></div>
+        <div class="full"><label>Tên minh chứng / tên bài báo, đề tài <span class="req">*</span></label><input name="title" required></div>
+        <div><label>Tác giả / thành viên</label><input name="authors" placeholder="Theo thứ tự trên công bố"></div>
+        <div><label>Năm</label><input name="year" inputmode="numeric" placeholder="2026"></div>
+        <div class="full"><label>Nơi công bố / đơn vị cấp</label><input name="venue" placeholder="Tên tạp chí, hội thảo, ISSN/ISBN, số, trang…"></div>
+        <div class="full"><label>Đường link (DOI, Google Drive…)</label><input name="link" type="url" placeholder="https://"></div>
+        <div class="full"><label>Ghi chú cho giảng viên</label><textarea name="note"></textarea></div>
+        <div class="full">
+          <label>File minh chứng</label>
+          <div class="drop" id="drop"><b>Kéo thả file vào đây</b> hoặc bấm để chọn<br><span class="small muted" id="limits"></span></div>
+          <input type="file" id="fileInput" multiple hidden>
+          <ul class="filelist" id="fileList"></ul>
+        </div>
+      </div>
+      <div style="margin-top:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn" id="submitBtn" type="submit">Nộp minh chứng</button>
+        <span class="small muted">Cần ít nhất 1 file hoặc 1 đường link.</span>
+      </div>
+    </form>
+  </div>
+</main>
+<footer>Trường Đại học Văn Lang · Khoa Kỹ thuật và Quản lý Công nghiệp</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cfg, files = [];
+
+fetch('/api/config').then(r => r.json()).then(c => {
+  cfg = c;
+  $('#siteTitle').textContent = c.settings.title;
+  document.title = 'Nộp minh chứng · ' + c.settings.title;
+  if (c.settings.intro) $('#intro').textContent = c.settings.intro;
+  if (c.settings.deadline) $('#deadline').innerHTML = `<div class="alert info">Hạn nộp: <b>${esc(new Date(c.settings.deadline).toLocaleString('vi-VN',{dateStyle:'full',timeStyle:'short'}))}</b></div>`;
+  $('#catList').innerHTML = c.categories.map(x => `<div><b>${esc(x.name)}</b>${esc(x.hint)}</div>`).join('');
+  $('#cat').innerHTML += c.categories.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+  $('#limits').textContent = `Tối đa 10 file, mỗi file ≤ ${c.maxMB} MB · ${c.allowed.join(' ')}`;
+  if (!c.settings.open) {
+    $('#formCard').innerHTML = '<div class="alert err" style="margin:0">Cổng nộp minh chứng hiện đang đóng. Vui lòng liên hệ giảng viên.</div>';
+  }
+});
+
+$('#cat').addEventListener('change', e => {
+  const c = cfg.categories.find(x => x.id === e.target.value);
+  $('#catHint').textContent = c ? 'Cần nộp: ' + c.hint : '';
+});
+
+const drop = $('#drop'), input = $('#fileInput');
+drop.onclick = () => input.click();
+input.onchange = () => { addFiles(input.files); input.value = ''; };
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function addFiles(list) {
+  for (const f of list) {
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    if (!cfg.allowed.includes(ext)) { showMsg(`File "${f.name}" không đúng định dạng cho phép.`, 'err'); continue; }
+    if (f.size > cfg.maxMB * 1048576) { showMsg(`File "${f.name}" vượt quá ${cfg.maxMB} MB.`, 'err'); continue; }
+    if (files.length >= 10) break;
+    files.push(f);
+  }
+  renderFiles();
+}
+function renderFiles() {
+  $('#fileList').innerHTML = files.map((f, i) => `<li><span>${esc(f.name)} <span class="muted small">(${(f.size/1048576).toFixed(2)} MB)</span></span><button type="button" data-i="${i}">Xóa</button></li>`).join('');
+  $('#fileList').querySelectorAll('button').forEach(b => b.onclick = () => { files.splice(+b.dataset.i, 1); renderFiles(); });
+}
+function showMsg(t, type) { $('#msg').innerHTML = `<div class="alert ${type}">${esc(t)}</div>`; $('#msg').scrollIntoView({behavior:'smooth', block:'center'}); }
+
+$('#f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  files.forEach(f => fd.append('files', f));
+  const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Đang tải lên…';
+  try {
+    const r = await fetch('/api/submit', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Có lỗi xảy ra');
+    $('#formCard').innerHTML = `<div class="success"><h2>Đã nộp thành công</h2>
+      <p class="muted">Mã nộp của bạn</p><div class="code">${esc(d.code)}</div>
+      <p class="muted">Giảng viên sẽ xem và phản hồi. Bạn có thể theo dõi tại trang <a href="/tra-cuu">Tra cứu phản hồi</a> bằng mã học viên và email.</p>
+      <p style="margin-top:18px"><a class="btn ghost" href="/">Nộp thêm minh chứng khác</a></p></div>`;
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } catch (err) {
+    showMsg(err.message, 'err');
+  } finally { btn.disabled = false; btn.textContent = 'Nộp minh chứng'; }
+});
+</script>
+</body>
+</html>

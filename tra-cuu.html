@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tra cứu phản hồi · Minh chứng NCKH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo">NC</div>
+  <div><h1 id="siteTitle">Minh chứng Nghiên cứu khoa học</h1><small>Cổng nộp minh chứng dành cho học viên</small></div>
+  <nav><a href="/">Nộp minh chứng</a><a href="/tra-cuu" class="on">Tra cứu phản hồi</a></nav>
+</div></header>
+
+<main class="narrow">
+  <div class="card">
+    <h2>Tra cứu phản hồi</h2>
+    <p class="lead">Nhập mã học viên và email đã dùng khi nộp để xem trạng thái và nhận xét của giảng viên.</p>
+    <form id="f" class="grid">
+      <div><label>Mã học viên</label><input name="studentId" required></div>
+      <div><label>Email</label><input name="email" type="email" required></div>
+      <div class="full"><button class="btn" type="submit">Tra cứu</button></div>
+    </form>
+  </div>
+  <div id="out"></div>
+</main>
+<footer>Trường Đại học Văn Lang · Khoa Kỹ thuật và Quản lý Công nghiệp</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ST = { 'moi':'Mới nộp', 'dang-xem':'Đang xem xét', 'dat':'Đạt', 'can-bo-sung':'Cần bổ sung', 'khong-dat':'Không đạt' };
+let cats = [];
+fetch('/api/config').then(r => r.json()).then(c => { cats = c.categories; $('#siteTitle').textContent = c.settings.title; });
+
+$('#f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = Object.fromEntries(new FormData(e.target));
+  const r = await fetch('/api/lookup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const d = await r.json();
+  if (!r.ok) { $('#out').innerHTML = `<div class="card"><div class="alert err" style="margin:0">${esc(d.error)}</div></div>`; return; }
+  if (!d.submissions.length) { $('#out').innerHTML = '<div class="card"><div class="alert info" style="margin:0">Không tìm thấy minh chứng nào khớp với mã học viên và email này.</div></div>'; return; }
+  const catName = id => (cats.find(c => c.id === id) || {}).name || id;
+  $('#out').innerHTML = `<div class="card"><h3>${d.submissions.length} minh chứng đã nộp</h3>` + d.submissions.map(s => `
+    <div class="sub-item">
+      <div class="row"><div><b>${esc(s.title)}</b><div class="small muted">${esc(catName(s.categoryId))} · Mã ${esc(s.code)} · ${new Date(s.createdAt).toLocaleString('vi-VN')}</div></div>
+      <span class="badge st-${s.status}">${ST[s.status]}</span></div>
+      ${s.files.length ? `<div class="small muted" style="margin-top:6px">File: ${s.files.map(esc).join(', ')}</div>` : ''}
+      ${s.feedback ? `<div class="fb"><b>Phản hồi của giảng viên${s.score ? ' · Điểm: ' + esc(s.score) : ''}</b>\n${esc(s.feedback)}</div>` : ''}
+      ${s.status === 'can-bo-sung' ? `<p class="small" style="margin:10px 0 0">Vui lòng <a href="/">nộp lại minh chứng</a> đã bổ sung và ghi mã <b>${esc(s.code)}</b> vào phần ghi chú.</p>` : ''}
+    </div>`).join('') + '</div>';
+});
+</script>
+</body>
+</html>

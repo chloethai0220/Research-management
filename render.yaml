@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: nckh-minh-chung
+    runtime: node
+    plan: starter            # Cần gói trả phí để gắn Persistent Disk (gói free sẽ mất dữ liệu khi khởi động lại)
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATA_DIR
+        value: /var/data
+      - key: MAX_FILE_MB
+        value: 20
+      - key: ADMIN_PASSWORD
+        sync: false          # Nhập trên dashboard Render khi tạo service
+      - key: SESSION_SECRET
+        generateValue: true
+    disk:
+      name: nckh-data
+      mountPath: /var/data
+      sizeGB: 5
